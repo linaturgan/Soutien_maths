@@ -24,8 +24,14 @@ export function weekMonday(date) {
   return addDays(date, -((day + 6) % 7));
 }
 
-export function finished(monday, slot) {
-  return addDays(monday, slot.day) + 'T' + (slot.ends.length === 5 ? slot.ends + ':00' : slot.ends) <= parisNow();
+export function registrationStatus(monday, slot, now = Date.parse(parisNow() + 'Z')) {
+  const date = addDays(monday, slot.day);
+  const ends = Date.parse(date + 'T' + slot.ends + 'Z');
+  const starts = Date.parse(date + 'T' + slot.starts + 'Z');
+  if (ends <= now) return 'Terminé';
+  if (slot.full) return 'Complet';
+  if (starts - 3600000 <= now) return 'Inscriptions closes';
+  return '';
 }
 
 function standardWeek(monday) {
@@ -92,9 +98,11 @@ export function signOut() {
 export function loadWeeks(teacher) {
   if (!demo) return rpc(teacher ? 'teacher_schedule' : 'schedule');
   const { weeks, registrations } = getDemo();
-  if (teacher) {
-    for (const week of weeks) {
-      for (const slot of week.slots) slot.registration_count = registrations[slot.id]?.length ?? 0;
+  for (const week of weeks) {
+    for (const slot of week.slots) {
+      const count = registrations[slot.id]?.length ?? 0;
+      if (teacher) slot.registration_count = count;
+      else slot.full = count >= 20;
     }
   }
   return weeks;
@@ -120,9 +128,13 @@ export function register(person, ids) {
   for (const id of ids) {
     const week = data.weeks.find(item => item.slots.some(slot => slot.id === id));
     const slot = week?.slots.find(item => item.id === id);
-    if (!slot || finished(week.monday, slot)) throw new Error('Ce créneau est terminé ou a été retiré.');
+    if (!slot) throw new Error('Ce créneau a été retiré.');
     const list = data.registrations[id] ??= [];
-    if (!list.some(row => identity(row) === personKey)) list.push(person);
+    if (list.some(row => identity(row) === personKey)) continue;
+    if (registrationStatus(week.monday, { ...slot, full: list.length >= 20 })) {
+      throw new Error('Ce créneau ne prend plus d’inscriptions.');
+    }
+    list.push(person);
   }
   saveDemo(data);
 }

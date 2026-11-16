@@ -1,4 +1,4 @@
-import * as api from './backend.js?v=messagerie';
+import * as api from './backend.js?v=limites';
 
 const $ = id => document.getElementById(id);
 const teacherPage = new URLSearchParams(location.search).has('prof');
@@ -73,6 +73,12 @@ function syncSelection() {
 
 function toggleSlot(slot) {
   if (submitting) return;
+  if (api.registrationStatus(monday, slot)) {
+    chosen.delete(slot.id);
+    renderSchedule();
+    status('Ce créneau ne prend plus d’inscriptions.', 'error');
+    return;
+  }
   if (chosen.delete(slot.id)) {
     syncSelection();
     return;
@@ -97,7 +103,7 @@ function renderSchedule() {
   $('add-slot').disabled = !week;
   $('delete-week').disabled = !week;
   $('week-caption').textContent = week
-    ? (teacherPage ? 'Sélectionne un créneau pour ouvrir sa liste d’appel.' : 'Tu peux choisir plusieurs séances. Les créneaux terminés restent visibles.')
+    ? (teacherPage ? 'Sélectionne un créneau pour ouvrir sa liste d’appel.' : 'Tu peux choisir plusieurs séances. Les inscriptions ferment une heure avant chaque séance et chaque créneau est limité à 20 places.')
     : (teacherPage ? 'Ajoute une semaine pour publier de nouveaux créneaux.' : 'Aucune semaine de soutien n’est affichée pour le moment.');
   $('days').replaceChildren();
   if (!week) return;
@@ -116,9 +122,10 @@ function renderSchedule() {
       const button = element('button', null, 'slot');
       button.type = 'button';
       button.dataset.slot = slot.id;
-      button.disabled = !teacherPage && api.finished(monday, slot);
+      const availability = teacherPage ? '' : api.registrationStatus(week.monday, slot);
+      button.disabled = Boolean(availability);
       button.append(element('span', hours(slot), 'slot-time'));
-      button.append(element('span', 'Salle ' + slot.room + (button.disabled ? ' · Terminé' : ''), 'slot-room'));
+      button.append(element('span', 'Salle ' + slot.room + (availability ? ' · ' + availability : ''), 'slot-room'));
       if (teacherPage) {
         const badge = element('span');
         setAttendanceBadge(badge, slot.registration_count ?? 0);
@@ -162,7 +169,7 @@ async function refreshWeeks(preferred) {
   monday = weeks.some(week => week.monday === preferred)
     ? preferred
     : (weeks.find(week => week.monday >= todayWeek) ?? weeks.at(-1))?.monday;
-  const available = new Set(weeks.flatMap(week => week.slots.filter(slot => !api.finished(week.monday, slot)).map(slot => slot.id)));
+  const available = new Set(weeks.flatMap(week => week.slots.filter(slot => !api.registrationStatus(week.monday, slot)).map(slot => slot.id)));
   for (const id of chosen) {
     if (!available.has(id)) chosen.delete(id);
   }
@@ -468,7 +475,13 @@ $('registration').addEventListener('submit', async event => {
     history.replaceState({ registrationSummary: summary }, '', '#confirmation');
     showRegistrationSummary(summary);
   } catch (error) {
-    status(errorMessage(error), 'error');
+    const message = errorMessage(error);
+    try {
+      await refreshWeeks(monday);
+    } catch {
+      // L’erreur d’inscription est prioritaire.
+    }
+    status(message, 'error');
   } finally {
     submitting = false;
     inputs.forEach(input => input.readOnly = false);
