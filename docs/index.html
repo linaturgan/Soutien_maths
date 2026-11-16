@@ -23,6 +23,7 @@
         <p class="eyebrow" id="hero-label">Lycée · Inscriptions</p>
         <h1 id="hero-title">Soutien maths<span>.</span></h1>
         <p id="hero-description">Une question, un exercice ou besoin de revoir une notion ? Choisis les séances qui te conviennent. Le soutien est facultatif.</p>
+        <a id="contact-link" class="hero-link" href="#contact" hidden>Écrire à ton enseignant ↓</a>
       </div>
       <div class="hero-art" aria-hidden="true">
         <svg viewBox="0 0 250 155" fill="none">
@@ -68,6 +69,7 @@
         <button id="add-week" type="button">+ Ajouter une semaine</button>
         <button id="add-slot" type="button">+ Ajouter un créneau</button>
         <button id="delete-week" class="danger" type="button">Supprimer la semaine</button>
+        <button id="refresh-agenda" type="button">Actualiser les inscrits</button>
         <button id="logout" class="quiet" type="button">Déconnexion</button>
       </div>
       <div id="days" class="days"></div>
@@ -82,6 +84,30 @@
         <button id="delete-slot" class="danger" type="button">Supprimer le créneau</button>
       </div>
       <div id="roster-content"></div>
+    </section>
+    <section id="contact" class="panel contact" aria-labelledby="contact-title" hidden>
+      <h2 id="contact-title">Contacter ton enseignant</h2>
+      <p>Utilise les champs nom, prénom et classe en haut de la page. Pour une annulation, indique la date et l’horaire de la séance.</p>
+      <form id="contact-form">
+        <label for="subject">Sujet</label>
+        <select id="subject" name="subject" required>
+          <option value="">Choisis un sujet</option>
+          <option value="cancellation">Prévenir d’une absence</option>
+          <option value="preparation">Proposer un sujet à travailler</option>
+          <option value="other">Autre message</option>
+        </select>
+        <label for="message">Ton message</label>
+        <textarea id="message" name="message" rows="4" maxlength="1000" required></textarea>
+        <p id="contact-status" class="notice" role="status" hidden></p>
+        <button class="primary" type="submit">Envoyer le message</button>
+      </form>
+    </section>
+    <section id="inbox" class="panel contact" aria-labelledby="inbox-title" hidden>
+      <div class="schedule-head">
+        <h2 id="inbox-title">Messages des élèves</h2>
+        <button id="refresh-inbox" type="button">Actualiser les messages</button>
+      </div>
+      <div id="messages" aria-live="polite"></div>
     </section>
     <section id="submit-area" class="submit-area" hidden>
       <span><strong id="selection-count">0 créneau sélectionné</strong><small>Les inscriptions sont transmises à ton enseignant.</small></span>

@@ -9,6 +9,15 @@ const fullDate = new Intl.DateTimeFormat('fr-FR', {
 });
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 const chosen = new Set();
+const messageSubjects = {
+  cancellation: 'Absence / annulation',
+  preparation: 'Sujet à travailler',
+  other: 'Autre message',
+};
+const receivedDate = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Paris',
+});
+let inboxRequest = 0;
 let weeks = [];
 let monday;
 let activeSlot;
@@ -58,14 +67,11 @@ function syncSelection() {
   $('register').disabled = submitting || !chosen.size;
 }
 
-function toggleSlot(slot, slots) {
+function toggleSlot(slot) {
   if (submitting) return;
   if (chosen.delete(slot.id)) {
     syncSelection();
     return;
-  }
-  if (slot.choice_group) {
-    slots.filter(other => other.choice_group === slot.choice_group).forEach(other => chosen.delete(other.id));
   }
   if (chosen.size === 50) {
     status('Tu peux choisir jusqu’à 50 créneaux par inscription.', 'error');
@@ -100,9 +106,6 @@ function renderSchedule() {
     const items = slots.filter(slot => slot.day === day)
       .sort((a, b) => a.starts.localeCompare(b.starts) || a.ends.localeCompare(b.ends) || collator.compare(a.room, b.room));
     if (!items.length) cards.append(element('p', 'Aucun créneau', 'empty'));
-    if (!teacherPage && items.some(slot => slot.choice_group && items.filter(other => other.choice_group === slot.choice_group).length > 1)) {
-      cards.append(element('p', 'Choisis une seule des deux options.', 'choice'));
-    }
     for (const slot of items) {
       const button = element('button', null, 'slot');
       button.type = 'button';
@@ -110,7 +113,13 @@ function renderSchedule() {
       button.disabled = !teacherPage && api.finished(monday, slot);
       button.append(element('span', hours(slot), 'slot-time'));
       button.append(element('span', 'Salle ' + slot.room + (button.disabled ? ' · Terminé' : ''), 'slot-room'));
-      button.addEventListener('click', () => teacherPage ? openRoster(slot) : toggleSlot(slot, items));
+      if (teacherPage) {
+        const badge = element('span');
+        setAttendanceBadge(badge, slot.registration_count ?? 0);
+        button.append(badge);
+        if (slot.archived) button.append(element('span', 'Ancien créneau', 'slot-room'));
+      }
+      button.addEventListener('click', () => teacherPage ? openRoster(slot) : toggleSlot(slot));
       cards.append(button);
     }
     column.append(heading, cards);
@@ -119,8 +128,20 @@ function renderSchedule() {
   syncSelection();
 }
 
+
+function setAttendanceBadge(badge, count) {
+  badge.textContent = count + (count > 1 ? ' inscrits' : ' inscrit');
+  badge.className = count ? 'attendance-badge has-registrations' : 'attendance-badge';
+}
+
+function updateAttendanceBadge(slot) {
+  const button = $('days').querySelector('button[data-slot="' + slot.id + '"]');
+  const badge = button?.querySelector('.attendance-badge');
+  if (badge) setAttendanceBadge(badge, slot.registration_count);
+}
+
 async function refreshWeeks(preferred) {
-  weeks = (await api.loadWeeks()).sort((a, b) => a.monday.localeCompare(b.monday));
+  weeks = (await api.loadWeeks(teacherPage)).sort((a, b) => a.monday.localeCompare(b.monday));
   const todayWeek = currentMonday();
   monday = weeks.some(week => week.monday === preferred)
     ? preferred
@@ -149,6 +170,7 @@ async function openRoster(slot, scroll = true) {
   roster = undefined;
   $('roster').hidden = false;
   $('export').disabled = true;
+  $('edit-slot').disabled = Boolean(slot.archived);
   $('roster-caption').textContent = fullDate.format(asDate(date)) + ' · ' + hours(slot) + ' · Salle ' + slot.room;
   $('roster-content').replaceChildren(element('p', 'Chargement des inscrits…'));
   syncSelection();
@@ -158,6 +180,8 @@ async function openRoster(slot, scroll = true) {
     if (request !== rosterRequest) return;
     roster = list.sort((a, b) => collator.compare(a.family, b.family)
       || collator.compare(a.given, b.given) || collator.compare(a.classroom, b.classroom));
+    slot.registration_count = roster.length;
+    updateAttendanceBadge(slot);
     $('export').disabled = false;
     if (!roster.length) {
       $('roster-content').replaceChildren(element('p', 'Aucune inscription pour ce créneau.'));
@@ -165,7 +189,7 @@ async function openRoster(slot, scroll = true) {
     }
     const table = element('table');
     const headers = table.createTHead().insertRow();
-    for (const label of ['Nom', 'Prénom', 'Classe']) {
+    for (const label of ['Nom', 'Prénom', 'Classe', 'Action']) {
       const header = element('th', label);
       header.scope = 'col';
       headers.append(header);
@@ -174,6 +198,22 @@ async function openRoster(slot, scroll = true) {
     for (const student of roster) {
       const row = body.insertRow();
       for (const value of [student.family, student.given, student.classroom]) row.insertCell().textContent = value;
+      const cancel = element('button', 'Annuler', 'danger');
+      cancel.type = 'button';
+      cancel.setAttribute('aria-label', 'Annuler l’inscription de ' + student.given + ' ' + student.family);
+      cancel.addEventListener('click', async () => {
+        if (!confirm('Annuler l’inscription de ' + student.given + ' ' + student.family + ' à ce créneau ?')) return;
+        cancel.disabled = true;
+        try {
+          await api.cancelRegistration(slot.id, student);
+          await refreshAgenda();
+        } catch (error) {
+          status(errorMessage(error), 'error');
+        } finally {
+          cancel.disabled = false;
+        }
+      });
+      row.insertCell().append(cancel);
     }
     $('roster-content').replaceChildren(table);
   } catch (error) {
@@ -212,7 +252,6 @@ function showSlotEditor(slot) {
   day.name = 'day';
   for (const [index, name] of dayNames.entries()) day.add(new Option(name, index));
   day.value = slot?.day ?? 0;
-  day.disabled = Boolean(slot?.choice_group);
   label.append(day);
   edit(slot ? 'Modifier le créneau' : 'Ajouter un créneau', [
     label,
@@ -326,12 +365,8 @@ $('registration').addEventListener('submit', async event => {
   event.preventDefault();
   if (!chosen.size || submitting) return;
   const form = event.currentTarget;
-  const fields = new FormData(form);
-  const person = Object.fromEntries(['family', 'given', 'classroom'].map(key => [key, api.normalizeField(fields.get(key))]));
-  if (Object.values(person).some(value => !value)) {
-    status('Renseigne ton nom, ton prénom et ta classe.', 'error');
-    return;
-  }
+  const person = readIdentity();
+  if (!person) return;
   submitting = true;
   syncSelection();
   const inputs = form.querySelectorAll('input');
@@ -381,6 +416,10 @@ async function revealSchedule() {
   $('manage').hidden = !teacherPage;
   $('logout').hidden = api.demo;
   $('submit-area').hidden = teacherPage;
+  $('contact').hidden = teacherPage;
+  $('contact-link').hidden = teacherPage;
+  $('inbox').hidden = !teacherPage;
+  if (teacherPage) void refreshMessages();
   status();
 }
 
@@ -417,4 +456,116 @@ document.addEventListener('visibilitychange', () => {
     refreshWeeks(monday).catch(error => status(errorMessage(error), 'error'));
   }
 });
+
+function readIdentity() {
+  const fields = ['family', 'given', 'classroom'];
+  for (const id of fields) $(id).setCustomValidity('');
+  for (const id of fields) {
+    if (!api.normalizeField($(id).value)) $(id).setCustomValidity('Renseigne ce champ.');
+  }
+  if (!$('registration').reportValidity()) return null;
+  return Object.fromEntries(fields.map(id => [id, api.normalizeField($(id).value)]));
+}
+
+$('registration').addEventListener('input', event => event.target.setCustomValidity(''));
+
+function contactStatus(message, kind) {
+  const notice = $('contact-status');
+  notice.textContent = message;
+  notice.className = 'notice ' + kind;
+  notice.hidden = !message;
+}
+
+$('contact-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  if (button.disabled) return;
+  const person = readIdentity();
+  if (!person) {
+    contactStatus('Renseigne ton nom, ton prénom et ta classe en haut de la page.', 'error');
+    return;
+  }
+  const fields = new FormData(form);
+  const message = fields.get('message').trim();
+  if (!message) {
+    contactStatus('Écris un message avant de l’envoyer.', 'error');
+    return;
+  }
+  button.disabled = true;
+  contactStatus('', '');
+  try {
+    await api.sendMessage(person, fields.get('subject'), message);
+    form.reset();
+    contactStatus('Ton message a été envoyé à ton enseignant.', 'success');
+  } catch (error) {
+    contactStatus(errorMessage(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+});
+
+async function refreshAgenda() {
+  const button = $('refresh-agenda');
+  button.disabled = true;
+  try {
+    await refreshWeeks(monday);
+    if (activeSlot) {
+      const slot = currentWeek()?.slots.find(item => item.id === activeSlot.id);
+      if (slot) await openRoster(slot, false);
+      else closeRoster();
+    }
+  } catch (error) {
+    status(errorMessage(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function refreshMessages() {
+  const request = ++inboxRequest;
+  const target = $('messages');
+  const refresh = $('refresh-inbox');
+  refresh.disabled = true;
+  try {
+    const messages = await api.loadMessages();
+    if (request !== inboxRequest) return;
+    target.replaceChildren();
+    if (!messages.length) {
+      target.append(element('p', 'Aucun message pour le moment.', 'empty'));
+      return;
+    }
+    for (const message of messages) {
+      const item = element('article', null, 'message-card');
+      const heading = element('h3', messageSubjects[message.subject]);
+      const identity = message.given + ' ' + message.family + ' · ' + message.classroom;
+      const metadata = element('p', identity + ' · ' + receivedDate.format(new Date(message.received_at)), 'message-meta');
+      const body = element('p', message.body, 'message-body');
+      const remove = element('button', 'Supprimer ce message', 'danger');
+      remove.type = 'button';
+      remove.addEventListener('click', async () => {
+        if (!confirm('Supprimer ce message ?')) return;
+        remove.disabled = true;
+        try {
+          await api.deleteMessage(message.id);
+          await refreshMessages();
+        } catch (error) {
+          status(errorMessage(error), 'error');
+        } finally {
+          remove.disabled = false;
+        }
+      });
+      item.append(heading, metadata, body, remove);
+      target.append(item);
+    }
+  } catch (error) {
+    if (request === inboxRequest) target.replaceChildren(element('p', errorMessage(error), 'notice error'));
+  } finally {
+    if (request === inboxRequest) refresh.disabled = false;
+  }
+}
+
+$('refresh-agenda').addEventListener('click', refreshAgenda);
+$('refresh-inbox').addEventListener('click', refreshMessages);
+
 void boot();

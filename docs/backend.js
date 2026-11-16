@@ -2,7 +2,7 @@ const config = window.SOUTIEN_CONFIG ?? {};
 export const configured = Boolean(config.supabaseUrl && config.publishableKey);
 export const demo = !configured && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 const root = config.supabaseUrl?.replace(/\/$/, '');
-const storageKey = 'soutien-maths-demo-v1';
+const storageKey = 'soutien-maths-demo-v2';
 let accessToken = '';
 
 export function parisNow() {
@@ -29,27 +29,21 @@ export function finished(monday, slot) {
 }
 
 function standardWeek(monday) {
-  const group = crypto.randomUUID();
-  const rows = [
-    [0, '11:30', '14:00', '210'],
-    [1, '12:30', '13:30', '210', group],
-    [1, '13:00', '14:00', '210', group],
-    [2, '10:30', '14:00', '212'],
-    [3, '11:30', '14:00', '214'],
-    [4, '11:30', '14:00', '216'],
-  ];
+  const rooms = ['210', '210', '212', '214', '216'];
+  const periods = [['10:30', '11:30'], ['11:30', '12:30'], ['12:30', '13:30'], ['13:00', '14:00']];
+  const firstPeriod = [1, 2, 0, 1, 1];
   return {
     monday,
-    slots: rows.map(([day, starts, ends, room, choice_group]) => ({
-      id: crypto.randomUUID(), day, starts, ends, room, choice_group,
-    })),
+    slots: rooms.flatMap((room, day) => periods.slice(firstPeriod[day]).map(([starts, ends]) => ({
+      id: crypto.randomUUID(), day, starts, ends, room,
+    }))),
   };
 }
 
 function getDemo() {
   const stored = localStorage.getItem(storageKey);
   if (stored) return JSON.parse(stored);
-  const initial = { weeks: [standardWeek(weekMonday(parisNow().slice(0, 10)))], registrations: {} };
+  const initial = { weeks: [standardWeek(weekMonday(parisNow().slice(0, 10)))], registrations: {}, messages: [] };
   localStorage.setItem(storageKey, JSON.stringify(initial));
   return initial;
 }
@@ -95,8 +89,15 @@ export function signOut() {
   accessToken = '';
 }
 
-export function loadWeeks() {
-  return demo ? getDemo().weeks : rpc('schedule');
+export function loadWeeks(teacher) {
+  if (!demo) return rpc(teacher ? 'teacher_schedule' : 'schedule');
+  const { weeks, registrations } = getDemo();
+  if (teacher) {
+    for (const week of weeks) {
+      for (const slot of week.slots) slot.registration_count = registrations[slot.id]?.length ?? 0;
+    }
+  }
+  return weeks;
 }
 
 export function normalizeField(value) {
@@ -120,10 +121,6 @@ export function register(person, ids) {
     const week = data.weeks.find(item => item.slots.some(slot => slot.id === id));
     const slot = week?.slots.find(item => item.id === id);
     if (!slot || finished(week.monday, slot)) throw new Error('Ce créneau est terminé ou a été retiré.');
-    const alternates = week.slots.filter(item => item.id !== id && slot.choice_group && item.choice_group === slot.choice_group);
-    if (alternates.some(item => data.registrations[item.id]?.some(row => identity(row) === personKey))) {
-      throw new Error('Une autre option du même créneau est déjà inscrite pour cet élève.');
-    }
     const list = data.registrations[id] ??= [];
     if (!list.some(row => identity(row) === personKey)) list.push(person);
   }
@@ -177,5 +174,36 @@ export function deleteSlot(monday, id) {
   const week = data.weeks.find(item => item.monday === monday);
   if (week) week.slots = week.slots.filter(item => item.id !== id);
   delete data.registrations[id];
+  saveDemo(data);
+}
+
+export function sendMessage(person, subject, body) {
+  if (!demo) return rpc('send_message', {
+    p_family: person.family, p_given: person.given, p_classroom: person.classroom,
+    p_subject: subject, p_body: body,
+  });
+  const data = getDemo();
+  data.messages.unshift({ ...person, subject, body, id: crypto.randomUUID(), received_at: new Date().toISOString() });
+  saveDemo(data);
+}
+
+export function loadMessages() {
+  return demo ? getDemo().messages : rpc('inbox');
+}
+
+export function deleteMessage(id) {
+  if (!demo) return rpc('delete_message', { p_id: id });
+  const data = getDemo();
+  data.messages = data.messages.filter(message => message.id !== id);
+  saveDemo(data);
+}
+
+export function cancelRegistration(id, person) {
+  if (!demo) return rpc('cancel_registration', {
+    p_id: id, p_family: person.family, p_given: person.given, p_classroom: person.classroom,
+  });
+  const data = getDemo();
+  const personKey = identity(person);
+  data.registrations[id] = (data.registrations[id] ?? []).filter(row => identity(row) !== personKey);
   saveDemo(data);
 }
