@@ -1,4 +1,4 @@
-import * as api from './backend.js';
+import * as api from './backend.js?v=messagerie';
 
 const $ = id => document.getElementById(id);
 const teacherPage = new URLSearchParams(location.search).has('prof');
@@ -365,7 +365,7 @@ $('registration').addEventListener('submit', async event => {
   event.preventDefault();
   if (!chosen.size || submitting) return;
   const form = event.currentTarget;
-  const person = readIdentity();
+  const person = readIdentity(form);
   if (!person) return;
   submitting = true;
   syncSelection();
@@ -416,8 +416,7 @@ async function revealSchedule() {
   $('manage').hidden = !teacherPage;
   $('logout').hidden = api.demo;
   $('submit-area').hidden = teacherPage;
-  $('contact').hidden = teacherPage;
-  $('contact-link').hidden = teacherPage;
+  $('open-contact').hidden = teacherPage;
   $('inbox').hidden = !teacherPage;
   if (teacherPage) void refreshMessages();
   status();
@@ -459,17 +458,19 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function readIdentity() {
-  const fields = ['family', 'given', 'classroom'];
-  for (const id of fields) $(id).setCustomValidity('');
-  for (const id of fields) {
-    if (!api.normalizeField($(id).value)) $(id).setCustomValidity('Renseigne ce champ.');
+const identityFields = ['family', 'given', 'classroom'];
+
+function readIdentity(form) {
+  const person = Object.fromEntries(identityFields.map(name => [name, api.normalizeField(form.elements[name].value)]));
+  for (const name of identityFields) {
+    form.elements[name].setCustomValidity(person[name] ? '' : 'Renseigne ce champ.');
   }
-  if (!$('registration').reportValidity()) return null;
-  return Object.fromEntries(fields.map(id => [id, api.normalizeField($(id).value)]));
+  return form.reportValidity() ? person : null;
 }
 
-$('registration').addEventListener('input', event => event.target.setCustomValidity(''));
+for (const id of ['registration', 'contact-form']) {
+  $(id).addEventListener('input', event => event.target.setCustomValidity(''));
+}
 
 function contactStatus(message, kind) {
   const notice = $('contact-status');
@@ -478,16 +479,24 @@ function contactStatus(message, kind) {
   notice.hidden = !message;
 }
 
+$('open-contact').addEventListener('click', () => {
+  const form = $('contact-form');
+  for (const name of identityFields) {
+    const field = form.elements[name];
+    if (!field.value) field.value = $('registration').elements[name].value;
+  }
+  $('contact').showModal();
+});
+
+$('close-contact').addEventListener('click', () => $('contact').close());
+
 $('contact-form').addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.currentTarget;
-  const button = form.querySelector('button');
+  const button = form.querySelector('button[type=submit]');
   if (button.disabled) return;
-  const person = readIdentity();
-  if (!person) {
-    contactStatus('Renseigne ton nom, ton prénom et ta classe en haut de la page.', 'error');
-    return;
-  }
+  const person = readIdentity(form);
+  if (!person) return;
   const fields = new FormData(form);
   const message = fields.get('message').trim();
   if (!message) {
@@ -499,7 +508,7 @@ $('contact-form').addEventListener('submit', async event => {
   try {
     await api.sendMessage(person, fields.get('subject'), message);
     form.reset();
-    contactStatus('Ton message a été envoyé à ton enseignant.', 'success');
+    contactStatus('Ton message a été envoyé à ton enseignante.', 'success');
   } catch (error) {
     contactStatus(errorMessage(error), 'error');
   } finally {
