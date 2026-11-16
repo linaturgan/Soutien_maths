@@ -153,3 +153,38 @@ textarea {
 .message-card h3 { margin: 0 0 5px; font-size: 1rem; }
 .message-meta { margin: 0 0 10px; color: var(--muted); font-size: .84rem; }
 .message-body { margin: 0 0 12px; white-space: pre-wrap; }
+
+.week-range {
+  display: inline-block;
+  margin: 9px 0 0;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: var(--light-green);
+  color: var(--green);
+  font-weight: 700;
+}
+.roster-delete {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+.roster-delete:hover:not(:disabled) { background: #fbece7; }
+.summary-slots {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+.summary-slots li {
+  display: grid;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--light-green);
+}
+.summary-slots time { font-weight: 700; }
+.summary-slots time::first-letter { text-transform: uppercase; }
+.summary-hint { color: var(--muted); }

@@ -54,7 +54,8 @@ function status(value = '', kind = '') {
 
 function weekLabel(date) {
   const friday = api.addDays(date, 4);
-  const start = date.slice(0, 7) === friday.slice(0, 7) ? Number(date.slice(-2)) : dayMonth.format(asDate(date));
+  const sameYear = date.slice(0, 4) === friday.slice(0, 4);
+  const start = dayMonth.format(asDate(date)) + (sameYear ? '' : ' ' + date.slice(0, 4));
   return 'Du ' + start + ' au ' + dayMonth.format(asDate(friday)) + ' ' + friday.slice(0, 4);
 }
 
@@ -88,6 +89,8 @@ function renderSchedule() {
   if (!week) $('week').add(new Option('Aucune semaine', ''));
   $('week').disabled = !week;
   $('week').value = monday ?? '';
+  $('week-range').hidden = !week;
+  $('week-range').textContent = week ? weekLabel(week.monday) : '';
   $('add-slot').disabled = !week;
   $('delete-week').disabled = !week;
   $('week-caption').textContent = week
@@ -198,11 +201,14 @@ async function openRoster(slot, scroll = true) {
     for (const student of roster) {
       const row = body.insertRow();
       for (const value of [student.family, student.given, student.classroom]) row.insertCell().textContent = value;
-      const cancel = element('button', 'Annuler', 'danger');
+      const cancel = element('button', null, 'roster-delete danger');
       cancel.type = 'button';
-      cancel.setAttribute('aria-label', 'Annuler l’inscription de ' + student.given + ' ' + student.family);
+      const label = 'Supprimer l’inscription de ' + student.given + ' ' + student.family;
+      cancel.setAttribute('aria-label', label);
+      cancel.title = label;
+      cancel.append($('trash-icon').content.cloneNode(true));
       cancel.addEventListener('click', async () => {
-        if (!confirm('Annuler l’inscription de ' + student.given + ' ' + student.family + ' à ce créneau ?')) return;
+        if (!confirm(label + ' à ce créneau ?')) return;
         cancel.disabled = true;
         try {
           await api.cancelRegistration(slot.id, student);
@@ -361,6 +367,25 @@ $('export').addEventListener('click', async event => {
   }
 });
 
+function selectedSessions() {
+  return weeks.flatMap(week => week.slots
+    .filter(slot => chosen.has(slot.id))
+    .map(slot => ({ ...slot, date: api.addDays(week.monday, slot.day) })))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.starts.localeCompare(b.starts) || a.ends.localeCompare(b.ends));
+}
+
+function showRegistrationSummary(sessions) {
+  const rows = sessions.map(slot => {
+    const row = element('li');
+    const date = element('time', fullDate.format(asDate(slot.date)));
+    date.dateTime = slot.date;
+    row.append(date, element('span', hours(slot) + ' · Salle ' + slot.room));
+    return row;
+  });
+  $('summary-slots').replaceChildren(...rows);
+  $('registration-summary').showModal();
+}
+
 $('registration').addEventListener('submit', async event => {
   event.preventDefault();
   if (!chosen.size || submitting) return;
@@ -372,11 +397,12 @@ $('registration').addEventListener('submit', async event => {
   const inputs = form.querySelectorAll('input');
   inputs.forEach(input => input.readOnly = true);
   try {
-    const count = chosen.size;
-    await api.register(person, [...chosen]);
+    const sessions = selectedSessions();
+    await api.register(person, sessions.map(slot => slot.id));
     chosen.clear();
     form.reset();
-    status(count === 1 ? 'Ton inscription au créneau est enregistrée.' : 'Tes inscriptions à ' + count + ' créneaux sont enregistrées.', 'success');
+    status();
+    showRegistrationSummary(sessions);
   } catch (error) {
     status(errorMessage(error), 'error');
   } finally {
