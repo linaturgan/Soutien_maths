@@ -31,6 +31,9 @@ const asDate = date => new Date(date + 'T00:00:00Z');
 const currentWeek = () => weeks.find(week => week.monday === monday);
 const timeLabel = time => time.slice(0, 5).replace(':', ' h ');
 const hours = slot => timeLabel(slot.starts) + ' – ' + timeLabel(slot.ends);
+const describeSlot = (date, slot) => fullDate.format(asDate(date)) + ' · ' + hours(slot) + ' · Salle ' + slot.room;
+const sortRoster = list => list.sort((a, b) => collator.compare(a.family, b.family)
+  || collator.compare(a.given, b.given) || collator.compare(a.classroom, b.classroom));
 const currentMonday = () => api.weekMonday(api.parisNow().slice(0, 10));
 const errorMessage = error => (
   error instanceof TypeError || error.name === 'TimeoutError'
@@ -126,6 +129,16 @@ function renderSchedule() {
       cards.append(button);
     }
     column.append(heading, cards);
+    if (teacherPage && items.length) {
+      const daily = element('button', null, 'day-pdf');
+      daily.type = 'button';
+      const label = 'Télécharger les listes d’appel du ' + fullDate.format(asDate(date));
+      daily.setAttribute('aria-label', label);
+      daily.title = label;
+      daily.append($('pdf-icon').content.cloneNode(true), element('span', 'PDF du jour'));
+      daily.addEventListener('click', () => downloadDay(daily, date, items));
+      column.append(daily);
+    }
     $('days').append(column);
   }
   syncSelection();
@@ -172,20 +185,19 @@ async function openRoster(slot, scroll = true) {
   activeSlot = slot;
   roster = undefined;
   $('roster').hidden = false;
-  $('export').disabled = true;
+  setRosterExportsDisabled(true);
   $('edit-slot').disabled = Boolean(slot.archived);
-  $('roster-caption').textContent = fullDate.format(asDate(date)) + ' · ' + hours(slot) + ' · Salle ' + slot.room;
+  $('roster-caption').textContent = describeSlot(date, slot);
   $('roster-content').replaceChildren(element('p', 'Chargement des inscrits…'));
   syncSelection();
   if (scroll) $('roster').scrollIntoView({ block: 'start' });
   try {
     const list = await api.loadRoster(slot.id);
     if (request !== rosterRequest) return;
-    roster = list.sort((a, b) => collator.compare(a.family, b.family)
-      || collator.compare(a.given, b.given) || collator.compare(a.classroom, b.classroom));
+    roster = sortRoster(list);
     slot.registration_count = roster.length;
     updateAttendanceBadge(slot);
-    $('export').disabled = false;
+    setRosterExportsDisabled(false);
     if (!roster.length) {
       $('roster-content').replaceChildren(element('p', 'Aucune inscription pour ce créneau.'));
       return;
@@ -351,21 +363,56 @@ $('delete-slot').addEventListener('click', event => {
   const id = activeSlot?.id;
   if (id) void remove(event.currentTarget, 'Supprimer ce créneau et ses inscriptions ?', () => api.deleteSlot(date, id), date);
 });
-$('export').addEventListener('click', async event => {
-  const button = event.currentTarget;
+function setRosterExportsDisabled(disabled) {
+  for (const button of $('roster-exports').querySelectorAll('button')) button.disabled = disabled;
+}
+
+$('roster-exports').addEventListener('click', async event => {
+  const button = event.target.closest('button[data-export]');
+  if (!button || button.disabled || !roster || !activeSlot) return;
+  const mode = button.dataset.export;
   const exportedRoster = roster;
   const date = api.addDays(monday, activeSlot.day);
-  const description = $('roster-caption').textContent;
+  const start = activeSlot.starts.slice(0, 5).replace(':', 'h');
+  const sections = [{ list: exportedRoster, description: describeSlot(date, activeSlot) }];
+  const tab = mode === 'download' ? null : window.open('about:blank', '_blank');
+  if (mode !== 'download' && !tab) {
+    status('Autorise les fenêtres surgissantes pour ouvrir la liste d’appel.', 'error');
+    return;
+  }
+  if (tab) {
+    tab.opener = null;
+    tab.document.body.textContent = 'Préparation de la liste d’appel…';
+  }
   button.disabled = true;
   try {
-    const { downloadRoster } = await import('./roster.js');
-    await downloadRoster(exportedRoster, description, date);
+    const pdf = await import('./roster.js?v=listes');
+    if (mode === 'view') await pdf.viewRoster(sections, tab);
+    else if (mode === 'print') await pdf.printRoster(sections, tab);
+    else await pdf.downloadRoster(sections, 'appel-soutien-maths-' + date + '-' + start + '.pdf');
   } catch (error) {
+    tab?.close();
     status(errorMessage(error), 'error');
   } finally {
     if (roster === exportedRoster) button.disabled = false;
   }
 });
+
+async function downloadDay(button, date, slots) {
+  button.disabled = true;
+  try {
+    const sections = await Promise.all(slots.map(async slot => ({
+      list: sortRoster(await api.loadRoster(slot.id)),
+      description: describeSlot(date, slot),
+    })));
+    const { downloadRoster } = await import('./roster.js?v=listes');
+    await downloadRoster(sections, 'listes-appel-soutien-maths-' + date + '.pdf');
+  } catch (error) {
+    status(errorMessage(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
 
 function selectedSessions() {
   return weeks.flatMap(week => week.slots

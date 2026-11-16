@@ -27,7 +27,7 @@ GitHub Pages publie les fichiers de la page. Supabase conserve le planning et le
 
 - **Ajouter une semaine** propose le prochain lundi disponible. La case « Utiliser les créneaux habituels » reprend le planning du PDF source. Décoche-la pour commencer avec une semaine vide.
 - **Ajouter un créneau** permet de préciser le jour, l’horaire et la salle. Pour modifier ou supprimer une séance, ouvrir sa liste d’appel depuis le planning.
-- **Télécharger le PDF** produit une feuille A4 avec le nom, le prénom, la classe et une colonne de présence. Le navigateur de l’enseignant génère le PDF.
+- **Voir le PDF**, **Imprimer** et **Télécharger** sont disponibles dans la liste d’appel du créneau. **PDF du jour**, sous chaque colonne du planning enseignant, télécharge toutes les listes de la journée dans un fichier A4.
 - Supprimer une séance ou une semaine efface aussi les inscriptions correspondantes. Télécharge la liste au préalable si tu veux la conserver.
 
 - Le nombre d’inscrits apparaît sur chaque carte dans l’espace enseignant. « Actualiser les inscrits » recharge les compteurs et la liste d’appel ouverte.

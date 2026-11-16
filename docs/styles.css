@@ -217,3 +217,21 @@ textarea {
   text-decoration: none;
 }
 .confirmation-home:hover { background: var(--ink); }
+
+.roster-exports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.day { display: flex; flex-direction: column; }
+.day-pdf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: auto 9px 9px;
+  min-height: 44px;
+  color: var(--green);
+  background: var(--light-green);
+  font-size: .8rem;
+}
