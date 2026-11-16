@@ -426,7 +426,9 @@ async function revealSchedule() {
 async function boot() {
   if (teacherPage) {
     $('hero-label').textContent = 'Lycée · Espace enseignant';
-    $('hero-title').replaceChildren('Gérer le soutien', element('span', '.'));
+    $('hero-label').hidden = false;
+    $('hero-title').classList.remove('student-title');
+    $('hero-title').replaceChildren('Gérer le soutien', element('span', '.', 'hero-accent'));
     $('hero-description').textContent = 'Ouvre des semaines, ajuste les créneaux et retrouve tes listes d’appel.';
     $('mode-link').href = './';
     $('mode-link').textContent = 'Page élève ↗';

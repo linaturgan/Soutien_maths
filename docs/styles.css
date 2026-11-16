@@ -22,14 +22,18 @@ body { margin: 0; }
 .brand span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: white; background: var(--green); }
 .nav-link { font-size: .86rem; padding: 8px 0 8px 8px; text-align: right; }
 .nav-link:hover { text-decoration: underline; }
-.hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 30px 0 22px; padding: 36px 42px; border-radius: 22px; background: var(--ink); color: #fffaf0; overflow: hidden; }
+.hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 30px 0 22px; padding: 36px 42px; border-radius: 22px; background: #dcebdd; color: var(--ink); overflow: hidden; }
 .hero-text { max-width: 570px; }
 .eyebrow { margin: 0 0 10px; font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
-.hero .eyebrow, .hero h1 span { color: var(--gold); }
+.hero .eyebrow, .hero .hero-accent { color: var(--green); }
+.student-title span { display: block; }
+.student-title .hero-lead { font-size: .63em; line-height: 1.18; }
+.student-title .hero-accent { margin-top: 3px; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { font-size: clamp(2.25rem, 6vw, 4.1rem); letter-spacing: -.045em; line-height: 1; margin-bottom: 13px; }
 h2 { font-size: clamp(1.25rem, 3vw, 1.72rem); letter-spacing: -.028em; margin-bottom: 0; }
-.hero p:last-child { margin: 0; line-height: 1.55; color: #e1e9df; }
+#hero-description { margin: 0; line-height: 1.55; color: #324e3d; }
+.hero-teacher { margin: 9px 0 0; color: #324e3d; font-size: .87rem; font-weight: 650; }
 .hero-art { width: min(30%, 250px); flex: none; }
 .hero-art svg { display: block; width: 100%; }
 .panel { padding: 23px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
@@ -82,7 +86,8 @@ dialog label { margin-top: 12px; }
 dialog .toolbar { margin: 13px 0 0; }
 dialog .error:not(:empty) { padding: 8px; border-radius: 7px; margin-top: 10px; }
 .check { display: flex; align-items: center; }
-.footer { padding: 21px 0 32px; font-size: .8rem; color: var(--muted); }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 0 24px; font-size: .8rem; color: var(--muted); }
+.footer .nav-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--muted); font-size: .8rem; font-weight: 600; }
 @media (max-width: 900px) {
   .days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -91,6 +96,7 @@ dialog .error:not(:empty) { padding: 8px; border-radius: 7px; margin-top: 10px; 
   .nav { min-height: 58px; }
   .hero { margin: 17px 0 15px; padding: 23px 19px; border-radius: 15px; }
   .hero-art { display: none; }
+  .student-title { font-size: clamp(1.75rem, 8vw, 2.65rem); }
   .panel { padding: 15px; }
   .fields { grid-template-columns: 1fr 1fr; gap: 10px; }
   .schedule { margin-top: 21px; }
@@ -105,7 +111,7 @@ dialog .error:not(:empty) { padding: 8px; border-radius: 7px; margin-top: 10px; 
 .hero-link {
   display: inline-block;
   margin-top: 15px;
-  color: var(--gold);
+  color: var(--green);
   font-weight: 700;
   text-underline-offset: 3px;
 }

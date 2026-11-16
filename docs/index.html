@@ -14,25 +14,25 @@
   <header class="top">
     <div class="wrap nav">
       <a class="brand" href="./" aria-label="Soutien maths, accueil"><span aria-hidden="true">∑</span> Soutien maths</a>
-      <a id="mode-link" class="nav-link" href="?prof">Espace enseignant <span aria-hidden="true">↗</span></a>
     </div>
   </header>
   <main class="wrap">
     <section class="hero">
       <div class="hero-text">
-        <p class="eyebrow" id="hero-label">Lycée · Inscriptions</p>
-        <h1 id="hero-title">Soutien maths<span>.</span></h1>
-        <p id="hero-description">Une question, un exercice ou besoin de revoir une notion ? Choisis les séances qui te conviennent. Le soutien est facultatif.</p>
+        <p class="eyebrow" id="hero-label" hidden></p>
+        <h1 id="hero-title" class="student-title"><span class="hero-lead">Inscriptions pour du</span> <span class="hero-accent">soutiens en maths!</span></h1>
+        <p id="hero-description">Choisis les séances qui te conviennent, sans limite, sans obligation.</p>
+        <p class="hero-teacher">Dany Owczarzak</p>
         <a id="contact-link" class="hero-link" href="#contact" hidden>Écrire à ton enseignant ↓</a>
       </div>
       <div class="hero-art" aria-hidden="true">
         <svg viewBox="0 0 250 155" fill="none">
-          <defs><pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M18 0H0V18" stroke="#92ac96" stroke-opacity=".25"/></pattern></defs>
+          <defs><pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M18 0H0V18" stroke="#658e71" stroke-opacity=".32"/></pattern></defs>
           <rect width="250" height="155" fill="url(#grid)"/>
-          <path d="M10 120h224m-13-6 13 6-13 6M60 146V12m-6 13 6-13 6 13" stroke="#a2c4a9" stroke-width="1.2"/>
-          <path d="M17 129c35 1 52-2 72-13 18-10 37-28 56-55 12-17 29-24 39-18 12 7 15 31 39 41" stroke="#eece7d" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="146" cy="60" r="5" fill="#eece7d"/>
-          <path d="M146 66v53m-6-59H60" stroke="#eece7d" stroke-opacity=".55" stroke-dasharray="3 4"/>
+          <path d="M10 120h224m-13-6 13 6-13 6M60 146V12m-6 13 6-13 6 13" stroke="#668676" stroke-width="1.2"/>
+          <path d="M17 129c35 1 52-2 72-13 18-10 37-28 56-55 12-17 29-24 39-18 12 7 15 31 39 41" stroke="#2e674b" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="146" cy="60" r="5" fill="#2e674b"/>
+          <path d="M146 66v53m-6-59H60" stroke="#2e674b" stroke-opacity=".55" stroke-dasharray="3 4"/>
         </svg>
       </div>
     </section>
@@ -114,7 +114,10 @@
       <button id="register" class="primary" form="registration" type="submit" disabled>Valider mon inscription <span aria-hidden="true">↗</span></button>
     </section>
   </main>
-  <footer class="wrap footer">Soutien maths · Lycée</footer>
+  <footer class="wrap footer">
+    <span>Soutien maths · Lycée</span>
+    <a id="mode-link" class="nav-link" href="?prof">Espace enseignant <span aria-hidden="true">↗</span></a>
+  </footer>
 
   <dialog id="editor" aria-labelledby="editor-title">
     <form id="editor-form">
