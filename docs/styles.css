@@ -235,3 +235,8 @@ textarea {
   background: var(--light-green);
   font-size: .8rem;
 }
+
+.summary-hint strong, .confirmation-cancel strong {
+  color: var(--green);
+  font-weight: 750;
+}
