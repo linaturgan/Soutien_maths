@@ -1,5 +1,4 @@
-// Copier ici l’URL du projet Supabase et sa clé publiable.
 window.SOUTIEN_CONFIG = {
-  supabaseUrl: "",
-  publishableKey: "",
+  supabaseUrl: "https://dbwfzezmsoucojvwrvze.supabase.co",
+  publishableKey: "sb_publishable_k_q3ravXNI38fadpbgEX5w_mZVxaLpB",
 };
