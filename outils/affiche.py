@@ -38,18 +38,19 @@ def create_poster(url, path):
     pdf.setTitle("Soutien maths au lycée - Inscriptions")
 
     pdf.setFillColor(pale_green)
-    pdf.roundRect(36, 529, width - 72, 270, 16, fill=1, stroke=0)
+    pdf.roundRect(36, 516, width - 72, 283, 16, fill=1, stroke=0)
     pdf.setFillColor(ink)
     pdf.setFont(title_font, 49)
-    pdf.drawString(63, 719, "Besoin de soutien")
+    pdf.drawCentredString(width / 2, 719, "Besoin de soutien")
     pdf.setFillColor(green)
     pdf.setFont(accent_font, 75)
-    pdf.drawString(60, 642, "en maths ?")
+    pdf.drawCentredString(width / 2, 642, "en maths ?")
     pdf.setFillColor(ink)
     pdf.setFont(text_font, 21)
-    pdf.drawString(65, 585, "Des créneaux viennent d’ouvrir.")
+    pdf.drawCentredString(width / 2, 588, "Des créneaux viennent d’ouvrir, ici au lycée,")
+    pdf.drawCentredString(width / 2, 560, "avec Madame Owczarzak.")
     pdf.setFont(bold_font, 21)
-    pdf.drawString(65, 552, "Pour t’inscrire, c’est par ici")
+    pdf.drawCentredString(width / 2, 529, "Pour t’inscrire, c’est par ici")
 
     qr_size = 246
     qr_bottom = 222
@@ -69,7 +70,7 @@ def create_poster(url, path):
     pdf.setLineCap(1)
     pdf.setLineJoin(1)
     arrow = pdf.beginPath()
-    arrow.moveTo(110, 512)
+    arrow.moveTo(110, 501)
     arrow.curveTo(84, 481, 92, 435, 147, 420)
     arrow.lineTo(137, 435)
     arrow.moveTo(147, 420)
