@@ -9,66 +9,89 @@ from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib.colors import HexColor, white
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase.pdfmetrics import registerFont, stringWidth
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 
 
+def poster_font(filename, fallback):
+    font_path = Path("/System/Library/Fonts/Supplemental") / f"{filename}.ttf"
+    if not font_path.is_file():
+        return fallback
+    registerFont(TTFont(filename, str(font_path)))
+    return filename
+
+
 def create_poster(url, path):
-    width, height = A4
+    width, _ = A4
     ink = HexColor("#192D24")
     green = HexColor("#24583E")
-    gold = HexColor("#EECE7D")
-    paper = HexColor("#F8F7F2")
+    pale_green = HexColor("#DCEBDD")
+    orange = HexColor("#B44523")
+    title_font = poster_font("Georgia Bold", "Times-Bold")
+    accent_font = poster_font("Georgia Italic", "Times-Italic")
+    text_font = poster_font("Arial", "Helvetica")
+    bold_font = poster_font("Arial Bold", "Helvetica-Bold")
 
     path.parent.mkdir(parents=True, exist_ok=True)
     pdf = Canvas(str(path), pagesize=A4)
     pdf.setTitle("Soutien maths au lycée - Inscriptions")
-    pdf.setFillColor(paper)
-    pdf.rect(0, 0, width, height, fill=1, stroke=0)
 
+    pdf.setFillColor(pale_green)
+    pdf.roundRect(36, 529, width - 72, 270, 16, fill=1, stroke=0)
     pdf.setFillColor(ink)
-    pdf.roundRect(39, height - 259, width - 78, 216, 22, fill=1, stroke=0)
-    pdf.setFillColor(gold)
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(65, height - 94, "LYCÉE  /  INSCRIPTIONS")
-    pdf.setFillColor(white)
-    pdf.setFont("Helvetica-Bold", 48)
-    pdf.drawString(62, height - 156, "Soutien maths")
-    pdf.setFont("Helvetica", 15)
-    pdf.drawString(65, height - 196, "Une question, un exercice ou une notion à revoir ?")
-    pdf.drawString(65, height - 221, "Choisis les séances qui te conviennent. Le soutien est facultatif.")
+    pdf.setFont(title_font, 49)
+    pdf.drawString(63, 719, "Besoin de soutien")
+    pdf.setFillColor(green)
+    pdf.setFont(accent_font, 75)
+    pdf.drawString(60, 642, "en maths ?")
+    pdf.setFillColor(ink)
+    pdf.setFont(text_font, 21)
+    pdf.drawString(65, 585, "Des créneaux viennent d’ouvrir.")
+    pdf.setFont(bold_font, 21)
+    pdf.drawString(65, 552, "Pour t’inscrire, c’est par ici")
 
-    pdf.setFillColor(ink)
-    pdf.setFont("Helvetica-Bold", 22)
-    pdf.drawCentredString(width / 2, 531, "Scanne pour t’inscrire")
-    qr_size = 226
+    qr_size = 246
+    qr_bottom = 222
+    qr_left = (width - qr_size) / 2
     qr = QrCodeWidget(url, barWidth=qr_size, barHeight=qr_size, barBorder=4, barLevel="M")
     drawing = Drawing(qr_size, qr_size)
     drawing.add(qr)
-    qr_left = (width - qr_size) / 2
     pdf.setFillColor(white)
-    pdf.rect(qr_left, 277, qr_size, qr_size, fill=1, stroke=0)
-    renderPDF.draw(drawing, pdf, qr_left, 277)
-    pdf.linkURL(url, (qr_left, 277, qr_left + qr_size, 277 + qr_size))
+    pdf.setStrokeColor(pale_green)
+    pdf.setLineWidth(1.4)
+    pdf.roundRect(qr_left, qr_bottom, qr_size, qr_size, 14, fill=1, stroke=1)
+    renderPDF.draw(drawing, pdf, qr_left, qr_bottom)
+    pdf.linkURL(url, (qr_left, qr_bottom, qr_left + qr_size, qr_bottom + qr_size))
+
+    pdf.setStrokeColor(orange)
+    pdf.setLineWidth(3)
+    pdf.setLineCap(1)
+    pdf.setLineJoin(1)
+    arrow = pdf.beginPath()
+    arrow.moveTo(110, 512)
+    arrow.curveTo(84, 481, 92, 435, 147, 420)
+    arrow.lineTo(137, 435)
+    arrow.moveTo(147, 420)
+    arrow.lineTo(130, 415)
+    pdf.drawPath(arrow)
 
     pdf.setFillColor(green)
-    pdf.roundRect(130, 210, width - 260, 41, 8, fill=1, stroke=0)
-    pdf.setFillColor(white)
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawCentredString(width / 2, 225, "Ouvrir la page d’inscription")
-    pdf.linkURL(url, (130, 210, width - 130, 251))
-    pdf.setFillColor(green)
-    size = min(11, 11 * (width - 100) / stringWidth(url, "Helvetica", 11))
-    pdf.setFont("Helvetica", size)
-    pdf.drawCentredString(width / 2, 185, url)
-    pdf.linkURL(url, (50, 179, width - 50, 199))
+    pdf.setStrokeColor(green)
+    size = min(15, 15 * (width - 100) / stringWidth(url, text_font, 15))
+    pdf.setFont(text_font, size)
+    text_width = stringWidth(url, text_font, size)
+    pdf.drawCentredString(width / 2, 181, url)
+    pdf.setLineWidth(0.65)
+    pdf.line((width - text_width) / 2, 178, (width + text_width) / 2, 178)
+    pdf.linkURL(url, ((width - text_width) / 2, 174, (width + text_width) / 2, 197))
 
-    pdf.setStrokeColor(HexColor("#C6D3C5"))
-    pdf.line(60, 140, width - 60, 140)
     pdf.setFillColor(ink)
-    pdf.setFont("Helvetica", 13)
-    pdf.drawCentredString(width / 2, 106, "Renseigne ton nom, ton prénom et ta classe.")
-    pdf.drawCentredString(width / 2, 84, "Choisis tes créneaux dans l’emploi du temps, puis valide.")
+    pdf.setFont(bold_font, 22)
+    pdf.drawCentredString(width / 2, 112, "Choisis tes créneaux,")
+    pdf.setFillColor(orange)
+    pdf.setFont(accent_font, 42)
+    pdf.drawCentredString(width / 2, 65, "sans limite !")
     pdf.save()
 
 
