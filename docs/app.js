@@ -432,8 +432,8 @@ function showRegistrationSummary(sessions) {
   const multiple = sessions.length > 1;
   $('summary-title').textContent = multiple ? 'Inscriptions confirmées' : 'Inscription confirmée';
   $('summary-success').textContent = multiple
-    ? 'Vos inscriptions ont bien été prises en compte et transmises à l’enseignante.'
-    : 'Votre inscription a bien été prise en compte et transmise à l’enseignante.';
+    ? 'Tes inscriptions ont bien été prises en compte et transmises à l’enseignante.'
+    : 'Ton inscription a bien été prise en compte et transmise à l’enseignante.';
   $('summary-slots').replaceChildren(...rows);
   for (const id of ['site-header', 'home', 'site-footer']) $(id).hidden = true;
   $('registration-summary').hidden = false;
