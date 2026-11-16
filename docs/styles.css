@@ -34,7 +34,7 @@ h1 { font-size: clamp(2.25rem, 6vw, 4.1rem); letter-spacing: -.045em; line-heigh
 h2 { font-size: clamp(1.25rem, 3vw, 1.72rem); letter-spacing: -.028em; margin-bottom: 0; }
 #hero-description { margin: 0; line-height: 1.55; color: #324e3d; }
 .hero-teacher { margin: 9px 0 0; color: #324e3d; font-size: .87rem; font-weight: 650; }
-.hero-art { width: min(30%, 250px); flex: none; }
+.hero-art { width: min(38%, 330px); flex: none; padding: 12px; border: 1px solid #aac6d4; border-radius: 15px; background: #eef6fa; }
 .hero-art svg { display: block; width: 100%; }
 .panel { padding: 23px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
 .fields { display: grid; grid-template-columns: 1fr 1fr .8fr; gap: 15px; margin-top: 16px; }
@@ -95,7 +95,9 @@ dialog .error:not(:empty) { padding: 8px; border-radius: 7px; margin-top: 10px; 
   .wrap { width: calc(100% - 24px); }
   .nav { min-height: 58px; }
   .hero { margin: 17px 0 15px; padding: 23px 19px; border-radius: 15px; }
-  .hero-art { display: none; }
+  .hero { flex-direction: column; align-items: stretch; }
+  .hero-art { width: 100%; padding: 7px; }
+  .hero-art svg { height: clamp(92px, 30vw, 135px); }
   .student-title { font-size: clamp(1.75rem, 8vw, 2.65rem); }
   .panel { padding: 15px; }
   .fields { grid-template-columns: 1fr 1fr; gap: 10px; }
