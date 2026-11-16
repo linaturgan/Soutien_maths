@@ -382,9 +382,24 @@ function showRegistrationSummary(sessions) {
     row.append(date, element('span', hours(slot) + ' · Salle ' + slot.room));
     return row;
   });
+  const multiple = sessions.length > 1;
+  $('summary-title').textContent = multiple ? 'Inscriptions confirmées' : 'Inscription confirmée';
+  $('summary-success').textContent = multiple
+    ? 'Vos inscriptions ont bien été prises en compte et transmises à l’enseignante.'
+    : 'Votre inscription a bien été prise en compte et transmise à l’enseignante.';
   $('summary-slots').replaceChildren(...rows);
-  $('registration-summary').showModal();
+  for (const id of ['site-header', 'home', 'site-footer']) $(id).hidden = true;
+  $('registration-summary').hidden = false;
+  window.scrollTo(0, 0);
+  $('summary-title').focus({ preventScroll: true });
 }
+
+$('summary-home').addEventListener('click', event => {
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  history.replaceState(null, '', location.pathname + location.search);
+  location.reload();
+});
 
 $('registration').addEventListener('submit', async event => {
   event.preventDefault();
@@ -402,7 +417,9 @@ $('registration').addEventListener('submit', async event => {
     chosen.clear();
     form.reset();
     status();
-    showRegistrationSummary(sessions);
+    const summary = sessions.map(({ date, starts, ends, room }) => ({ date, starts, ends, room }));
+    history.replaceState({ registrationSummary: summary }, '', '#confirmation');
+    showRegistrationSummary(summary);
   } catch (error) {
     status(errorMessage(error), 'error');
   } finally {
@@ -449,6 +466,11 @@ async function revealSchedule() {
 }
 
 async function boot() {
+  const summary = history.state?.registrationSummary;
+  if (!teacherPage && location.hash === '#confirmation' && Array.isArray(summary) && summary.length) {
+    showRegistrationSummary(summary);
+    return;
+  }
   if (teacherPage) {
     $('hero-label').textContent = 'Lycée · Espace enseignant';
     $('hero-label').hidden = false;

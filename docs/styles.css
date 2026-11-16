@@ -186,3 +186,34 @@ textarea {
 .summary-slots time { font-weight: 700; }
 .summary-slots time::first-letter { text-transform: uppercase; }
 .summary-hint { color: var(--muted); }
+
+.confirmation {
+  max-width: 700px;
+  margin-top: clamp(18px, 7vw, 70px);
+  margin-bottom: 24px;
+}
+.confirmation-panel {
+  padding: clamp(20px, 5vw, 38px);
+}
+.confirmation h1 {
+  color: var(--green);
+  font-size: clamp(1.9rem, 6vw, 3rem);
+}
+.confirmation-success { margin-bottom: 24px; line-height: 1.5; }
+.confirmation-cancel {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.confirmation-home {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.confirmation-home:hover { background: var(--ink); }
