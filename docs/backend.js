@@ -38,9 +38,10 @@ function standardWeek(monday) {
   const rooms = ['210', '210', '212', '214', '216'];
   const periods = [['10:30', '11:30'], ['11:30', '12:30'], ['12:30', '13:30'], ['13:00', '14:00']];
   const firstPeriod = [1, 2, 0, 1, 1];
+  const endPeriod = [4, 4, 3, 4, 4];
   return {
     monday,
-    slots: rooms.flatMap((room, day) => periods.slice(firstPeriod[day]).map(([starts, ends]) => ({
+    slots: rooms.flatMap((room, day) => periods.slice(firstPeriod[day], endPeriod[day]).map(([starts, ends]) => ({
       id: crypto.randomUUID(), day, starts, ends, room,
     }))),
   };

@@ -1,4 +1,4 @@
-import * as api from './backend.js?v=limites';
+import * as api from './backend.js?v=planning';
 
 const $ = id => document.getElementById(id);
 const teacherPage = new URLSearchParams(location.search).has('prof');
@@ -165,10 +165,13 @@ function updateAttendanceBadge(slot) {
 
 async function refreshWeeks(preferred) {
   weeks = (await api.loadWeeks(teacherPage)).sort((a, b) => a.monday.localeCompare(b.monday));
-  const todayWeek = currentMonday();
+  const now = api.parisNow();
+  const todayWeek = api.weekMonday(now.slice(0, 10));
+  const fridayCutoff = api.addDays(todayWeek, 4) + 'T14:00:00';
+  const firstWeek = !teacherPage && now >= fridayCutoff ? api.addDays(todayWeek, 7) : todayWeek;
   monday = weeks.some(week => week.monday === preferred)
     ? preferred
-    : (weeks.find(week => week.monday >= todayWeek) ?? weeks.at(-1))?.monday;
+    : (weeks.find(week => week.monday >= firstWeek) ?? weeks.at(-1))?.monday;
   const available = new Set(weeks.flatMap(week => week.slots.filter(slot => !api.registrationStatus(week.monday, slot)).map(slot => slot.id)));
   for (const id of chosen) {
     if (!available.has(id)) chosen.delete(id);
